@@ -1,79 +1,73 @@
 class MedScheduleWebSocket {
   constructor() {
     this.socket = null;
-    this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 5;
     this.connect();
   }
 
   connect() {
-    // Modifique para seu endpoint real ou use um servidor de teste
-    // Usando serviço público de echo
-this.socket = new WebSocket('wss://ws.postman-echo.com/raw');
+    // Em produção, substituir por seu servidor WebSocket real
+    this.socket = new WebSocket('wss://seu-servidor-websocket.com');
 
     this.socket.onopen = () => {
       console.log('Conexão WebSocket estabelecida');
-      this.reconnectAttempts = 0;
-      this.send({ 
-        type: 'auth', 
-        token: localStorage.getItem('authToken') 
-      });
+      this.send({ type: 'auth', token: localStorage.getItem('authToken') });
     };
 
     this.socket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        this.handleMessage(message);
-      } catch (error) {
-        console.error('Erro ao processar mensagem:', error);
-      }
+      const message = JSON.parse(event.data);
+      this.handleMessage(message);
     };
 
     this.socket.onclose = () => {
-      console.log('Conexão fechada. Tentando reconectar...');
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
-        setTimeout(() => {
-          this.reconnectAttempts++;
-          this.connect();
-        }, 3000);
-      }
-    };
-
-    this.socket.onerror = (error) => {
-      console.error('Erro no WebSocket:', error);
+      console.log('Conexão WebSocket fechada. Tentando reconectar...');
+      setTimeout(() => this.connect(), 5000);
     };
   }
 
   send(data) {
-    if (this.socket?.readyState === WebSocket.OPEN) {
+    if (this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(JSON.stringify(data));
-    } else {
-      console.warn('WebSocket não está conectado');
     }
   }
 
   handleMessage(message) {
-    console.log('Mensagem recebida:', message);
-    
-    switch(message.type) {
+    switch (message.type) {
       case 'notification':
         showNotification(message.text, 'info');
+        this.updateBadge();
         break;
       case 'new_appointment':
         showNotification(`Novo agendamento: ${message.data.paciente}`, 'success');
+        state.agendamentos.push(message.data);
+        if (currentScreen === 'agendamentos') renderAgendamentos();
+        this.updateBadge();
         break;
-      default:
-        console.warn('Tipo de mensagem não reconhecido:', message.type);
+      case 'appointment_update':
+        const index = state.agendamentos.findIndex(a => a.id === message.data.id);
+        if (index !== -1) {
+          state.agendamentos[index] = message.data;
+          if (currentScreen === 'agendamentos') renderAgendamentos();
+          showNotification(`Agendamento atualizado: ${message.data.paciente}`, 'info');
+        }
+        break;
+    }
+  }
+
+  updateBadge() {
+    const badge = document.getElementById('notification-badge');
+    if (badge) {
+      const count = parseInt(badge.textContent) || 0;
+      badge.textContent = count + 1;
+      badge.classList.remove('d-none');
     }
   }
 }
 
-// Inicialização segura
+// Inicialização
 let websocket;
 
-function initWebSocket() {
-  if (!websocket && typeof WebSocket !== 'undefined') {
+document.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('authToken')) {
     websocket = new MedScheduleWebSocket();
   }
-  return websocket;
-}
+});
