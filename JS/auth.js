@@ -1,7 +1,7 @@
 // Dados de usuários (simulado - em produção usar backend)
 const users = [
-  { id: 1, email: "admin@projeto.com", password: "@dm1n2025", role: "admin", name: "Administrador" },
-  { id: 2, email: "erickteste@projeto.com", password: "@dm1nEB04", role: "medico", name: "Dr. Carlos" }
+  { id: 1, email: "admin@medschedule.com", password: "123456", role: "admin", name: "Administrador" },
+  { id: 2, email: "medico@medschedule.com", password: "123456", role: "medico", name: "Dr. Carlos" }
 ];
 
 // Verifica se o usuário está logado
